@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: microservice-resilience
+
+server:
+  port: 8080
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+
+  retry:
+    instances:
+      userServiceRetry:
+        maxAttempts: 3
+        waitDuration: 1000
+        retryExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+
+  ratelimiter:
+    instances:
+      userServiceRateLimit:
+        registerHealthIndicator: true
+        limitRefreshPeriod: 1m
+        limitForPeriod: 10
+
+  bulkhead:
+    instances:
+      userServiceBulkhead:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 20ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
