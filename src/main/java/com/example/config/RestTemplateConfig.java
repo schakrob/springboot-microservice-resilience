@@ -9,21 +9,29 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
+
+/**
+ * Configuration for RestClient (Spring Boot 4.0+)
+ * Replaces RestTemplate with the new RestClient builder
+ */
 @Slf4j
 @Configuration
-public class RestTemplateConfig {
+public class RestClientConfig {
 
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        log.info("Configuring RestTemplate bean");
-        return builder
-                .setConnectTimeout(java.time.Duration.ofSeconds(5))
-                .setReadTimeout(java.time.Duration.ofSeconds(10))
+    public RestClient restClient() {
+        log.info("Configuring RestClient bean for Spring Boot 4.0+");
+        return RestClient.builder()
+                .requestFactory(ClientHttpRequestFactorySettings.builder()
+                        .connectTimeout(Duration.ofSeconds(5))
+                        .readTimeout(Duration.ofSeconds(10))
+                        .build())
                 .build();
     }
 
