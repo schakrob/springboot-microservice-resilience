@@ -7,41 +7,45 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
- * REST Client with Annotation-based Decorators
+ * REST Client with Annotation-based Decorators using Spring Boot 4.0+ RestClient
  * Applies: @CircuitBreaker, @Retry, @RateLimiter, @Bulkhead
  */
 @Slf4j
 @Component
 public class UserServiceClientWithAnnotations {
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private static final String REMOTE_SERVICE_URL = "http://localhost:8081/api";
 
-    public UserServiceClientWithAnnotations(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public UserServiceClientWithAnnotations(RestClient restClient) {
+        this.restClient = restClient;
     }
 
     /**
-     * Get user by ID with all resilience annotations
+     * Get user by ID with all resilience annotations using RestClient
      */
     @CircuitBreaker(name = "userServiceCB", fallbackMethod = "getUserByIdFallback")
     @Retry(name = "userServiceRetry")
     @RateLimiter(name = "userServiceRateLimit")
     @Bulkhead(name = "userServiceBulkhead")
     public UserDto getUserById(Long userId) {
-        log.info("Fetching user with ID: {} (annotation-based)", userId);
+        log.info("Fetching user with ID: {} (Annotation-based)", userId);
         String url = REMOTE_SERVICE_URL + "/users/" + userId;
         log.debug("Calling remote service: {}", url);
         
         try {
-            UserDto user = restTemplate.getForObject(url, UserDto.class);
+            UserDto user = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(UserDto.class);
+            
             log.info("Successfully retrieved user: {}", user);
             return user;
         } catch (Exception e) {
-            log.error("Error fetching user: {}", e.getMessage(), e);
+            log.error("Error fetching user from {}: {}", url, e.getMessage(), e);
             throw e;
         }
     }
@@ -60,23 +64,27 @@ public class UserServiceClientWithAnnotations {
     }
 
     /**
-     * Get all users with all resilience annotations
+     * Get all users with all resilience annotations using RestClient
      */
     @CircuitBreaker(name = "userServiceCB", fallbackMethod = "getAllUsersFallback")
     @Retry(name = "userServiceRetry")
     @RateLimiter(name = "userServiceRateLimit")
     @Bulkhead(name = "userServiceBulkhead")
     public UserDto[] getAllUsers() {
-        log.info("Fetching all users (annotation-based)");
+        log.info("Fetching all users (Annotation-based)");
         String url = REMOTE_SERVICE_URL + "/users";
         log.debug("Calling remote service: {}", url);
         
         try {
-            UserDto[] users = restTemplate.getForObject(url, UserDto[].class);
+            UserDto[] users = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(UserDto[].class);
+            
             log.info("Successfully retrieved {} users", users != null ? users.length : 0);
             return users;
         } catch (Exception e) {
-            log.error("Error fetching users: {}", e.getMessage(), e);
+            log.error("Error fetching users from {}: {}", url, e.getMessage(), e);
             throw e;
         }
     }
@@ -90,23 +98,28 @@ public class UserServiceClientWithAnnotations {
     }
 
     /**
-     * Create user with all resilience annotations
+     * Create user with all resilience annotations using RestClient
      */
     @CircuitBreaker(name = "userServiceCB", fallbackMethod = "createUserFallback")
     @Retry(name = "userServiceRetry")
     @RateLimiter(name = "userServiceRateLimit")
     @Bulkhead(name = "userServiceBulkhead")
     public UserDto createUser(UserDto userDto) {
-        log.info("Creating user (annotation-based): {}", userDto);
+        log.info("Creating user (Annotation-based): {}", userDto);
         String url = REMOTE_SERVICE_URL + "/users";
         log.debug("Calling remote service to create user: {}", url);
         
         try {
-            UserDto createdUser = restTemplate.postForObject(url, userDto, UserDto.class);
+            UserDto createdUser = restClient.post()
+                    .uri(url)
+                    .body(userDto)
+                    .retrieve()
+                    .body(UserDto.class);
+            
             log.info("User created successfully: {}", createdUser);
             return createdUser;
         } catch (Exception e) {
-            log.error("Error creating user: {}", e.getMessage(), e);
+            log.error("Error creating user at {}: {}", url, e.getMessage(), e);
             throw e;
         }
     }
@@ -121,23 +134,28 @@ public class UserServiceClientWithAnnotations {
     }
 
     /**
-     * Update user with all resilience annotations
+     * Update user with all resilience annotations using RestClient
      */
     @CircuitBreaker(name = "userServiceCB", fallbackMethod = "updateUserFallback")
     @Retry(name = "userServiceRetry")
     @RateLimiter(name = "userServiceRateLimit")
     @Bulkhead(name = "userServiceBulkhead")
     public UserDto updateUser(Long userId, UserDto userDto) {
-        log.info("Updating user: {} (annotation-based)", userId);
+        log.info("Updating user: {} (Annotation-based)", userId);
         String url = REMOTE_SERVICE_URL + "/users/" + userId;
         log.debug("Calling remote service to update user: {}", url);
         
         try {
-            restTemplate.put(url, userDto);
+            restClient.put()
+                    .uri(url)
+                    .body(userDto)
+                    .retrieve()
+                    .toBodilessEntity();
+            
             log.info("User updated successfully");
             return userDto;
         } catch (Exception e) {
-            log.error("Error updating user: {}", e.getMessage(), e);
+            log.error("Error updating user at {}: {}", url, e.getMessage(), e);
             throw e;
         }
     }
@@ -151,22 +169,26 @@ public class UserServiceClientWithAnnotations {
     }
 
     /**
-     * Delete user with all resilience annotations
+     * Delete user with all resilience annotations using RestClient
      */
     @CircuitBreaker(name = "userServiceCB", fallbackMethod = "deleteUserFallback")
     @Retry(name = "userServiceRetry")
     @RateLimiter(name = "userServiceRateLimit")
     @Bulkhead(name = "userServiceBulkhead")
     public void deleteUser(Long userId) {
-        log.info("Deleting user: {} (annotation-based)", userId);
+        log.info("Deleting user: {} (Annotation-based)", userId);
         String url = REMOTE_SERVICE_URL + "/users/" + userId;
         log.debug("Calling remote service to delete user: {}", url);
         
         try {
-            restTemplate.delete(url);
+            restClient.delete()
+                    .uri(url)
+                    .retrieve()
+                    .toBodilessEntity();
+            
             log.info("User deleted successfully");
         } catch (Exception e) {
-            log.error("Error deleting user: {}", e.getMessage(), e);
+            log.error("Error deleting user at {}: {}", url, e.getMessage(), e);
             throw e;
         }
     }
